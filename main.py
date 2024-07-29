@@ -65,13 +65,13 @@ def index():
             try:
                 check_pin = adb(text="กรุณาใส่รหัสผ่าน").get_text(timeout=0.1)
                 print(check_pin)
-                time.sleep(1)
-                for p in pin:
-                    adb(resourceId=f"com.kasikorn.retail.mbanking.wap:id/linear_layout_button_activity_{p}").click()
-                    time.sleep(0.1)
                 break
             except:
                 pass
+        time.sleep(0.5)
+        for p in pin:
+                    adb(resourceId=f"com.kasikorn.retail.mbanking.wap:id/linear_layout_button_activity_{p}").click()
+                    time.sleep(0.2)
         data_json = {}
         while True:
             if time.time() - start_time >= time_out:
