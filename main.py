@@ -54,6 +54,7 @@ def index():
         end_x = adb.info['displayWidth'] / 2  # Same horizontal position
         end_y = adb.info['displayHeight'] * 0.1  # Near the top of the screen
         if not adb.info['screenOn']:
+            adb.screen_on()
             adb.swipe(start_x, start_y, end_x, end_y, duration=0.06)
         adb.app_stop(package)
         adb.open_url(link)
