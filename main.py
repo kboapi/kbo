@@ -49,6 +49,12 @@ def index():
             return {"status":False,"msg":"check name device"}
         package = "com.kasikorn.retail.mbanking.wap"
         adb = uiautomator2.connect(device)
+        start_x = adb.info['displayWidth'] / 2  # Horizontal center of the screen
+        start_y = adb.info['displayHeight'] * 0.9  # Near the bottom of the screen
+        end_x = adb.info['displayWidth'] / 2  # Same horizontal position
+        end_y = adb.info['displayHeight'] * 0.1  # Near the top of the screen
+        if adb.info['currentPackageName'] == "com.android.systemui":
+            adb.swipe(start_x, start_y, end_x, end_y, duration=0.06)
         adb.app_stop(package)
         adb.open_url(link)
         while True:
@@ -68,10 +74,10 @@ def index():
                 break
             except:
                 pass
-        time.sleep(0.5)
+        time.sleep(1)
         for p in pin:
                     adb(resourceId=f"com.kasikorn.retail.mbanking.wap:id/linear_layout_button_activity_{p}").click()
-                    time.sleep(0.2)
+                    time.sleep(0.5)
         data_json = {}
         while True:
             if time.time() - start_time >= time_out:
