@@ -53,6 +53,7 @@ def index():
             return {"status":False,"msg":"check name device"}
         package = "com.kasikorn.retail.mbanking.wap"
         adb = uiautomator2.connect(device)
+        print(adb.info)
         # if not adb.info['screenOn']:
         adb.screen_on()
         run_adb_command("input keyevent KEYCODE_WAKEUP")  # Turn on the screen
