@@ -54,10 +54,10 @@ def index():
         package = "com.kasikorn.retail.mbanking.wap"
         adb = uiautomator2.connect(device)
         print(adb.info)
-        # if not adb.info['screenOn']:
-        adb.screen_on()
-        run_adb_command("input keyevent KEYCODE_WAKEUP")  # Turn on the screen
-        run_adb_command("input swipe 300 1000 300 500")  # Swipe up (for swipe unlock)
+        if adb.info['currentPackageName'] == "com.android.systemui":
+            adb.screen_on()
+            run_adb_command("input keyevent KEYCODE_WAKEUP")  # Turn on the screen
+            run_adb_command("input swipe 300 1000 300 500")  # Swipe up (for swipe unlock)
         adb.app_stop(package)
         adb.open_url(link)
         while True:
