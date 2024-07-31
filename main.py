@@ -50,6 +50,7 @@ def index():
         package = "com.kasikorn.retail.mbanking.wap"
         adb = uiautomator2.connect(device)
         if not adb.info['screenOn']:
+            time.sleep(2)
             adb.unlock()
         adb.app_stop(package)
         adb.open_url(link)
