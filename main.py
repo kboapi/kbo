@@ -4,7 +4,7 @@ import uiautomator2
 from ppadb.client import Client as AdbClient
 from bin.lib.lib_adb import LibAdb
 from threading import Thread
-
+import subprocess
 app = Flask(__name__)
 data_adb = []
 def loop_check_adb():
@@ -18,7 +18,11 @@ def loop_check_adb():
             pass
 
 Thread(target=loop_check_adb).start()
-
+def run_adb_command(cmd):
+    """Run an ADB shell command and print the output."""
+    result = subprocess.run(f"adb shell {cmd}", shell=True, capture_output=True, text=True)
+    print(result.stdout)
+    print(result.stderr)
 
 # package = "com.kasikorn.retail.mbanking.wap"
 # name_adb = "WWTWDQ4XX48XIBTO"
@@ -51,7 +55,8 @@ def index():
         adb = uiautomator2.connect(device)
         if not adb.info['screenOn']:
             adb.screen_on()
-            adb.swipe(300, 1000, 300, 500)
+            run_adb_command("input keyevent KEYCODE_WAKEUP")  # Turn on the screen
+            run_adb_command("input swipe 300 1000 300 500")  # Swipe up (for swipe unlock)
         adb.app_stop(package)
         adb.open_url(link)
         while True:
