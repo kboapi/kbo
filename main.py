@@ -53,8 +53,7 @@ def index():
         start_y = adb.info['displayHeight'] * 0.9  # Near the bottom of the screen
         end_x = adb.info['displayWidth'] / 2  # Same horizontal position
         end_y = adb.info['displayHeight'] * 0.1  # Near the top of the screen
-        print(adb.info['currentPackageName'])
-        if adb.info['currentPackageName'] == "com.android.systemui":
+        if not adb.info['screenOn']:
             adb.swipe(start_x, start_y, end_x, end_y, duration=0.06)
         adb.app_stop(package)
         adb.open_url(link)
