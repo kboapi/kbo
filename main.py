@@ -5,7 +5,9 @@ from uiautomator2 import Direction
 from ppadb.client import Client as AdbClient
 from bin.lib.lib_adb import LibAdb
 from threading import Thread
+import xmltodict
 import subprocess
+import json
 app = Flask(__name__)
 data_adb = []
 def loop_check_adb():
@@ -24,6 +26,113 @@ def run_adb_command(cmd):
     result = subprocess.run(f"adb shell {cmd}", shell=True, capture_output=True, text=True)
     print(result.stdout)
     print(result.stderr)
+def close_unwanted_apps(d,excluded_apps=None):
+    """
+    Closes all apps in the recent apps screen except for those in the excluded_apps list.
+    
+    :param excluded_apps: A list of apps (package names) to exclude from being closed.
+                          If None, defaults to ['com.termux'].
+    """
+    if excluded_apps is None:
+        excluded_apps = ['com.termux']  # Default excluded apps
+
+    # Connect to the device (replace 'your_device_ip' with your device's IP address if necessary)
+
+
+    # Go to the home screen
+    d.press('home')
+    d.app_start('com.termux')
+
+    # Press the "Recent Apps" button to show all running apps
+    d.press('recent')
+
+    # Give some time for the recent apps to load
+    time.sleep(1)
+
+    # Iterate over all apps in the recent apps screen
+    apps = d(resourceId="com.android.systemui:id/task_view").child(className="android.widget.FrameLayout")
+
+    # Loop through the running apps
+    for app in apps:
+        app_package = app.info.get('contentDescription', '')  # Get the package name or description of the app
+
+        # Close the app if it's not in the excluded list
+        if not any(excluded in app_package for excluded in excluded_apps):
+            # Try to find the close or dismiss button and click it
+            close_button = app.child_by_text("Close", allow_scroll_search=True)
+            if close_button.exists:
+                close_button.click()  # Click on the close button
+                print(f"Closed app: {app_package}")
+            else:
+                print(f"Could not find close button for: {app_package}")
+        else:
+            print(f"Excluded app: {app_package} - not closed")
+
+    # Interact with the "Clear Memory" button (if necessary)
+    clear_memory_button = d(resourceId="com.miui.home:id/clearAnimView")
+
+    if clear_memory_button.exists:
+        clear_memory_button.click()
+        print("Clear Memory button clicked.")
+    else:
+        print("Clear Memory button not found.")
+
+    # Return to the home screen
+    d.press('home')
+
+
+def close_all_apps(d):
+    """
+    Closes all apps in the recent apps screen except for those in the excluded_apps list.
+    
+    :param excluded_apps: A list of apps (package names) to exclude from being closed.
+                          If None, defaults to ['com.termux'].
+    """
+
+
+    # Connect to the device (replace 'your_device_ip' with your device's IP address if necessary)
+    # Go to the home screen
+    d.press('home')
+    # Press the "Recent Apps" button to show all running apps
+    d.press('recent')
+    # Give some time for the recent apps to load
+    time.sleep(1)
+    d(resourceId=f"com.miui.home:id/clearAnimView").click()
+
+def get_ui_elements_info(device):
+    # Dump the UI hierarchy (XML format)
+    ui_hierarchy = device.dump_hierarchy()
+
+    # Convert the XML hierarchy to a Python dictionary using xmltodict
+    ui_dict = xmltodict.parse(ui_hierarchy)
+
+    # Convert the dictionary to JSON (you can also keep it as dict if you don't need JSON specifically)
+    # ui_json = json.dumps(ui_dict, indent=4, ensure_ascii=False)
+
+    return ui_dict  # Return JSON formatted UI data
+
+
+@app.route("/infoapp", methods=["GET", "POST"])
+def infoapp():
+    data = request.args
+    device_id = data.get("device")  # Get the device ID from the request
+
+    if not device_id:
+        return {"status": False, "msg": "Device ID not provided"}
+
+    # Connect to the Android device using the provided device ID
+    try:
+        adb = uiautomator2.connect(device_id)
+    except Exception as e:
+        return {"status": False, "msg": f"Failed to connect to the device: {str(e)}"}
+
+    # Get UI element details, including XPath and other properties
+    try:
+        data = get_ui_elements_info(adb)
+    except Exception as e:
+        return {"status": False, "msg": f"Failed to get UI elements info: {str(e)}"}
+
+    return {"status": True, "msg": data}
 
 # package = "com.kasikorn.retail.mbanking.wap"
 # name_adb = "WWTWDQ4XX48XIBTO"
@@ -38,6 +147,90 @@ def get_devices_all():
     data_adb = main_adb.list_adb()
     return  data_adb
 
+@app.route("/unlock",methods=["GET","POST"])
+def unlock():
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    adb = uiautomator2.connect(device)
+    adb.screen_on()
+    adb.swipe_ext(Direction.FORWARD)
+    return  {"status":True,"msg":'ปลดล็อก สำเร็จ'}
+
+@app.route("/lock",methods=["GET","POST"])
+def lock():
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    adb = uiautomator2.connect(device)
+    adb.screen_off()
+    return  {"status":True,"msg":'ล็อก สำเร็จ'}
+
+@app.route("/clearall",methods=["GET","POST"])
+def clearall():
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    adb = uiautomator2.connect(device)
+    close_all_apps(adb)
+    return  {"status":True,"msg":'clear สำเร็จ'}
+
+@app.route("/clear",methods=["GET","POST"])
+def clearone():
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    adb = uiautomator2.connect(device)
+    close_unwanted_apps(adb)
+    return  {"status":True,"msg":'clear สำเร็จ'}
+
+
+@app.route("/info",methods=["GET","POST"])
+def info():
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    adb = uiautomator2.connect(device)
+    return  {"status":True,"msg":adb.info}
+
+@app.route("/verifyphone",methods=["GET"])
+def verifyphone():
+    # com.kasikorn.retail.mbanking.wap:id/complete_back_button
+    start_time = time.time()
+    time_out = 60
+    device = request.args.get("device")
+    if not device:
+        devices = get_devices_all()
+        device = devices[0]
+    package = "com.kasikorn.retail.mbanking.wap"
+    adb = uiautomator2.connect(device)
+    adb.app_start(package)
+    while True:
+        if time.time() - start_time >= time_out:
+            adb.app_stop(package)
+            return {"status":False,"msg":"time_out"}
+        try:
+            footer_bank_textview = adb(text="ธุรกรรม").get_text(timeout=0.1)
+            print(footer_bank_textview)
+            adb.app_stop(package)
+            return  {"status":True,"msg":'อัพเดทสำเร็จ'}
+        except:
+            pass
+        try:
+            complete_back_button = adb(text="อัปเดตเบอร์มือถือ").get_text(timeout=0.1)
+            print(complete_back_button)
+            break
+        except:
+            pass
+    time.sleep(1)
+    adb(resourceId=f"com.kasikorn.retail.mbanking.wap:id/complete_back_button").click()
+    adb.app_stop(package)
+    return  {"status":True,"msg":'อัพเดทสำเร็จ'}
 
 @app.route("/",methods=["GET", "POST"])
 def index():
@@ -46,7 +239,10 @@ def index():
         start_time = time.time()
         time_out = 60
         data = request.args
-        device = data["device"]
+        device = request.args.get("device")
+        if not device:
+            devices = get_devices_all()
+            device = devices[0]
         token = data["token"]
         link = f"https://kpaymentgateway-services.kasikornbank.com/KPGW-Redirect-Webapi/Appswitch/{token}"
         pin = "112233"
@@ -60,6 +256,7 @@ def index():
             adb.swipe_ext(Direction.FORWARD)
             # run_adb_command("input keyevent KEYCODE_WAKEUP")  # Turn on the screen
             # run_adb_command("input swipe 300 1000 300 500")  # Swipe up (for swipe unlock)
+        close_unwanted_apps(adb)
         adb.app_stop(package)
         adb.open_url(link)
         while True:
